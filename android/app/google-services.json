@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "877776417555",
+    "project_id": "ncs-shine",
+    "storage_bucket": "ncs-shine.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877776417555:android:3bde31cc8d9723472d20e6",
+        "android_client_info": {
+          "package_name": "com.example.ncs_new"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaG6Vpq8A6nGparj9Ij3a1ryBPNNJ9jos"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877776417555:android:42b0c613de117e6c2d20e6",
+        "android_client_info": {
+          "package_name": "com.example.ncs_shine"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaG6Vpq8A6nGparj9Ij3a1ryBPNNJ9jos"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877776417555:android:f6a783213fae23c52d20e6",
+        "android_client_info": {
+          "package_name": "com.example.new_ncsshine"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaG6Vpq8A6nGparj9Ij3a1ryBPNNJ9jos"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

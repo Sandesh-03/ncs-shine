@@ -1,0 +1,121 @@
+# Uncomment this line to define a global platform for your project
+platform :ios, '14.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+# ---- Defensive post_install to:
+# 1) enforce deployment target for Pods
+# 2) remove problematic '-G' compiler flags that may be injected by BoringSSL-GRPC / gRPC / other pods
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    # Ensure Flutter recommended build settings are applied
+    begin
+      flutter_additional_ios_build_settings(target)
+    rescue => e
+      # ignore if helper not available for some reason
+      puts "flutter_additional_ios_build_settings error for #{target.name}: #{e}"
+    end
+
+    # Enforce iOS deployment target for every pod target (avoid mismatches)
+    target.build_configurations.each do |config|
+      # Match the global platform above; change here if you pick a different one
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+    end
+
+    # === Remove problematic compiler flags from source build phase file settings ===
+    # These flags sometimes appear in file.settings['COMPILER_FLAGS'] or in file-specific flags
+    if target.respond_to?(:source_build_phase) && target.source_build_phase
+      target.source_build_phase.files.each do |file_ref|
+        next unless file_ref.respond_to?(:settings) && file_ref.settings.is_a?(Hash)
+
+        # Remove any -G* flags from COMPILER_FLAGS if present
+        if file_ref.settings['COMPILER_FLAGS'].is_a?(String)
+          flags = file_ref.settings['COMPILER_FLAGS'].split(/\s+/)
+          filtered = flags.reject { |f| f.start_with?('-G') }
+          file_ref.settings['COMPILER_FLAGS'] = filtered.join(' ')
+        end
+
+        # Also check for OTHER_CFLAGS and OTHER_CPLUSPLUSFLAGS (some pods use these)
+        ['OTHER_CFLAGS', 'OTHER_CPLUSPLUSFLAGS', 'OTHER_LDFLAGS'].each do |k|
+          if file_ref.settings[k].is_a?(String)
+            parts = file_ref.settings[k].split(/\s+/)
+            filtered = parts.reject { |p| p.start_with?('-G') }
+            file_ref.settings[k] = filtered.join(' ')
+          end
+        end
+      end
+    end
+
+    # === Also defensively strip -G flags from target-level build settings ===
+    target.build_configurations.each do |config|
+      ['OTHER_CFLAGS', 'OTHER_CPLUSPLUSFLAGS', 'GCC_PREPROCESSOR_DEFINITIONS', 'OTHER_LDFLAGS'].each do |field|
+        val = config.build_settings[field]
+        if val.is_a?(String) && val.include?('-G')
+          arr = val.split(/\s+/)
+          arr.reject! { |f| f.start_with?('-G') }
+          config.build_settings[field] = arr.join(' ')
+        elsif val.is_a?(Array)
+          filtered = val.reject { |f| f.is_a?(String) && f.start_with?('-G') }
+          config.build_settings[field] = filtered
+        end
+      end
+    end
+
+    # Extra: target-specific check for common culprit
+    if target.name =~ /BoringSSL-GRPC/i
+      # Extra safety: ensure no lingering -G flags anywhere on this target
+      target.build_configurations.each do |config|
+        config.build_settings.each do |k, v|
+          if v.is_a?(String) && v.include?('-G')
+            config.build_settings[k] = v.split(/\s+/).reject { |f| f.start_with?('-G') }.join(' ')
+          elsif v.is_a?(Array)
+            config.build_settings[k] = v.reject { |f| f.is_a?(String) && f.start_with?('-G') }
+          end
+        end
+      end
+    end
+  end
+
+  # If you use use_frameworks!, CocoaPods might require this fix for some pods — keep it safe:
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      if config.build_settings['ENABLE_BITCODE'] == nil
+        config.build_settings['ENABLE_BITCODE'] = 'NO'
+      end
+    end
+  end
+end
